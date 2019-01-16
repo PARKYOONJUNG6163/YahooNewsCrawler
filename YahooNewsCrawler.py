@@ -18,7 +18,7 @@ import time
 
 def articles_DB(articles) : 
     table_name = keyword + "_articles"
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8mb4")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
     curs = conn.cursor()
     curs.execute("use yahoo_news ;")
 
@@ -58,7 +58,7 @@ def articles_DB(articles) :
 
 def replies_DB(replies) :
     table_name = keyword + "_replies"
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8mb4")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
     curs = conn.cursor()
     curs.execute("use yahoo_news ;")
     
@@ -93,7 +93,7 @@ def replies_DB(replies) :
 
 def rereplies_DB(rereplies) :
     table_name = keyword + "_rereplies"
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8mb4")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
     curs = conn.cursor()
     curs.execute("use yahoo_news ;")
     
@@ -206,10 +206,10 @@ def article_crawling() :
 
 
 #DB 생성시 이용
-conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8mb4")
-curs = conn.cursor()
-query = """CREATE DATABASE yahoo_news default CHARACTER SET utf8mb4;"""
-curs.execute(query)
+#conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
+#curs = conn.cursor()
+#query = """CREATE DATABASE yahoo_news default CHARACTER SET utf8mb4;"""
+#curs.execute(query)
 
 
 # In[80]:
