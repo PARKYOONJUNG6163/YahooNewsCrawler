@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[74]:
+# In[110]:
 
 
 from selenium import webdriver
@@ -11,14 +11,15 @@ from bs4 import BeautifulSoup
 
 import pymysql
 import time
+import re
 
 
-# In[75]:
+# In[111]:
 
 
 def articles_DB(articles) : 
     table_name = keyword + "_articles"
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8mb4")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
     curs = conn.cursor()
     curs.execute("use yahoo_news ;")
 
@@ -29,23 +30,19 @@ def articles_DB(articles) :
     curs.execute(query)
 
     conn.commit()
-    
-    select_query = """SELECT * from """ + table_name
-    index = curs.execute(select_query)
 
     for value in articles :
-        url = value[0]
-        title = value[1]
-        date = value[2]
-        writer = value[3]
-        provider = value[4]
-        count = value[5]
-        content = value[6]
-
+        article_ID = value[0]
+        url = value[1]
+        title = value[2]
+        date = value[3]
+        writer = value[4]
+        provider = value[5]
+        count = value[6]
+        content = value[7]
+        
         query = """insert into """ + table_name + """(ID, URL, Title, Date, Writer, Provider, Count, Text) values (%s, %s, %s, %s, %s, %s, %s, %s) ; """
-        curs.execute(query, (str(index), url, title, date,writer,provider,count,content))
-
-        index = index + 1 
+        curs.execute(query, (article_ID, url, title, date,writer,provider,count,content))
 
         conn.commit()
         
@@ -53,12 +50,12 @@ def articles_DB(articles) :
     print("FINISH")
 
 
-# In[76]:
+# In[112]:
 
 
 def replies_DB(replies) :
     table_name = keyword + "_replies"
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8mb4")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
     curs = conn.cursor()
     curs.execute("use yahoo_news ;")
     
@@ -88,12 +85,12 @@ def replies_DB(replies) :
     print("FINISH")
 
 
-# In[77]:
+# In[113]:
 
 
 def rereplies_DB(rereplies) :
     table_name = keyword + "_rereplies"
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8mb4")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
     curs = conn.cursor()
     curs.execute("use yahoo_news ;")
     
@@ -128,10 +125,10 @@ def rereplies_DB(rereplies) :
     print("FINISH")
 
 
-# In[78]:
+# In[114]:
 
 
-def article_crawling() :
+def article_crawling(mode,reply_ID) :
     articles = []
     URL_date_list = []
     page_num = 0
@@ -180,14 +177,16 @@ def article_crawling() :
                         if(soup.find("div", {"class" : "comments-body"}).select('div > div > div')[0].text.find('(') != -1) :
                             temp = soup.find("div", {"class" : "comments-body"}).select('div > div > div')[0].text
                             reply_count = re.search(r'\((.*?)\)',temp).group(1)
+                        else :
+                            reply_count = 0
                     else : 
                         reply_count = 0
+                        
                     news_content = soup.find("article", {"itemprop" : "articleBody"}).text.replace('\n','').strip()
                     articles.append([article_ID,url,news_title,news_date,news_writer,news_provider,reply_count,news_content])
-                    if reply_count != 0 :
-                        reply_crawling(driver,article_ID)
-                    else :
-                        print("댓글 없음")
+                    if mode != 1 and reply_count != 0 :
+                        reply_ID = reply_crawling(driver,article_ID,mode,reply_ID)
+                        
                     article_ID += 1
                     
         driver.get(p_url)
@@ -202,20 +201,20 @@ def article_crawling() :
     print("기사 수집 완료")
 
 
-# In[79]:
+# In[115]:
 
 
 #DB 생성시 이용
-conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8mb4")
-curs = conn.cursor()
-query = """CREATE DATABASE yahoo_news default CHARACTER SET utf8mb4;"""
-curs.execute(query)
+# conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
+# curs = conn.cursor()
+# query = """CREATE DATABASE yahoo_news default CHARACTER SET utf8mb4;"""
+# curs.execute(query)
 
 
-# In[80]:
+# In[116]:
 
 
-def reply_crawling(driver,article_ID) :
+def reply_crawling(driver,article_ID,mode,reply_ID) :
     soup = BeautifulSoup(driver.page_source,'html.parser')
     #댓글 보라색 버튼이 없는 경우는 댓글보기 누르고 
     if soup.find("div", {"class" : "Trsdu(.2s) Trsp(scale) Scale(1)"}) is None :
@@ -227,7 +226,7 @@ def reply_crawling(driver,article_ID) :
         while True :
             try :
                 show_more.click()
-                time.sleep(2)
+                time.sleep(3)
             except :
                 break
     except :
@@ -235,10 +234,10 @@ def reply_crawling(driver,article_ID) :
     
     # 위치 벗어나는 오류 발생하므로 스크롤 위로 당겨줌
     driver.execute_script("window.scrollTo(0, -document.body.scrollHeight);")
+    time.sleep(2)
     
     soup = BeautifulSoup(driver.page_source,'html.parser')
     replies = []
-    reply_ID = 0
     reply_list = soup.findAll("li", {"class" : "comment Pend(2px) Mt(5px) P(12px) "})
     for li in reply_list :
         reply_writer = li.find("div", {"class" : "Fz(13px) Mend(20px)"}).find("button").text
@@ -253,40 +252,50 @@ def reply_crawling(driver,article_ID) :
         if reply_Bad == "" :
             reply_Bad = 0    
         replies.append([article_ID,reply_ID,reply_writer,reply_date,reply_body,reply_Like,reply_Bad])
-        rereply_crawling(driver,li,article_ID,reply_ID) # 대댓글 수집
+        if mode == 3 :
+            rereply_crawling(driver,li,article_ID,reply_ID,reply_list.index(li)) # 대댓글 수집
         reply_ID += 1
 
     replies_DB(replies) #DB에 저장
     print("댓글 수집 완료")
+    
+    return reply_ID
 
 
-# In[81]:
+# In[117]:
 
 
-def rereply_crawling(driver,li,article_ID,reply_ID) :
-    if li.find("button", {"class" : "replies-button O(n):h O(n):a P(0) Bd(n) Cur(p) Fz(12px) Fw(500) C($c-fuji-grey-g) D(ib) Mend(20px)"}) is not None :
+def rereply_crawling(driver,li,article_ID,reply_ID,li_index) :
+    print(li_index)
+    elem = driver.find_elements_by_xpath("//ul[@class='comments-list List(n) Ovs(touch) Pos(r) Mstart(-12px) Pt(5px)']/li["+str(li_index+1)+"]/div[1]/div[4]/div[1]/button")
+    elem_num = len(elem)
+    print(elem_num)
+    if elem_num != 1 :
         # rereply 열기
-        driver.find_element_by_xpath("//ul[@class='comments-list List(n) Ovs(touch) Pos(r) Mstart(-12px) Pt(5px)']/li["+str(reply_ID+1)+"]/div/div[4]/div/button[2]").click()
+        print(elem[1])
+        elem[1].click()
         time.sleep(3) # 클릭 후 로딩 되어야 하므로 3초정도 여유
         # rereply 더 많아서 show more해야하면
         try :
-            show_older_replies = driver.find_element_by_xpath("//button[@class='show-next-button Fz(14px) Fw(b) C($c-fuji-blue-1-a) Bd(0) P(0) Mx(0) Mt(10px) Mb(5px) Mstart(40px)']") 
+            driver.find_element_by_xpath("//button[@class='show-next-button Fz(14px) Fw(b) C($c-fuji-blue-1-a) Bd(0) P(0) Mx(0) Mt(10px) Mb(5px) Mstart(40px)']") 
             while True :
                 try :
+                    show_older_replies = driver.find_element_by_xpath("//button[@class='show-next-button Fz(14px) Fw(b) C($c-fuji-blue-1-a) Bd(0) P(0) Mx(0) Mt(10px) Mb(5px) Mstart(40px)']") 
                     show_older_replies.click()
-                    time.sleep(2)
+                    time.sleep(5)
                 except :
                     break
         except :
             print("show_older_replies 버튼 없음")
           
         # 위치 벗어나는 오류 발생하므로 스크롤 위로 당겨줌
-        driver.execute_script("window.scrollTo(0, -document.body.scrollHeight);")
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(3)
         soup = BeautifulSoup(driver.page_source,'html.parser')
         
         rereplies = []
         rereply_list = soup.find("div", {"class" : "reply-box"}).findAll("li", {"class" : "comment Pend(2px) Py(10px) Pstart(10px) "})
-        
+   
         for i in rereply_list :
             rereply_writer = i.find("div", {"class" : "Fz(13px) Mend(20px)"}).find("button").text
             rereply_date = i.find("div", {"class" : "Fz(13px) Mend(20px)"}).find("span").text
@@ -303,9 +312,11 @@ def rereply_crawling(driver,li,article_ID,reply_ID) :
        
         # 위치 벗어나는 오류 발생하므로 스크롤 위로 당겨줌
         driver.execute_script("window.scrollTo(0, -document.body.scrollHeight);")
-    
+        time.sleep(3)
+        
         # 다시 rereply 닫음
-        driver.find_element_by_xpath("//ul[@class='comments-list List(n) Ovs(touch) Pos(r) Mstart(-12px) Pt(5px)']/li["+str(reply_ID+1)+"]/div/div[4]/div/button[2]").click()
+        elem = driver.find_elements_by_xpath("//ul[@class='comments-list List(n) Ovs(touch) Pos(r) Mstart(-12px) Pt(5px)']/li["+str(li_index+1)+"]/div[1]/div[4]/div[1]/button")
+        elem[1].click()
         time.sleep(3) # 클릭 후 로딩 되어야 하므로 3초정도 여유
         rereplies_DB(rereplies) #DB에 저장
         print("대댓글 수집 완료")
@@ -319,6 +330,8 @@ def rereply_crawling(driver,li,article_ID,reply_ID) :
 options = webdriver.ChromeOptions()
 # options.add_argument('headless')
 options.add_argument("--start-maximized")
+reply_ID = 0
 keyword = input("Keyword ? ")
-article_crawling() # 기사 수집 시작
+mode = int(input("1.기사만   2.기사+댓글   3.기사+댓글+대댓글   "))
+article_crawling(mode,reply_ID) # 기사 수집 시작
 
