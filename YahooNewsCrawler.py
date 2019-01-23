@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[110]:
+# In[10]:
 
 
 from selenium import webdriver
@@ -14,19 +14,19 @@ import time
 import re
 
 
-# In[111]:
+# In[11]:
 
 
 def articles_DB(articles) : 
     table_name = keyword + "_articles"
-    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
     curs = conn.cursor()
     curs.execute("use yahoo_news ;")
 
     query = """CREATE TABLE IF NOT EXISTS """+ table_name + """ (ID int, URL text, Title varchar(200), Date varchar(50), Writer varchar(200), Provider varchar(200), Count int,Text text);"""
     curs.execute(query)
 
-    query = """ALTER TABLE """ + table_name +""" CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"""
+    query = """ALTER TABLE """ + table_name +""" CHARACTER SET utf8 COLLATE utf8_general_ci;"""
     curs.execute(query)
 
     conn.commit()
@@ -50,19 +50,19 @@ def articles_DB(articles) :
     print("FINISH")
 
 
-# In[112]:
+# In[12]:
 
 
 def replies_DB(replies) :
     table_name = keyword + "_replies"
-    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
     curs = conn.cursor()
     curs.execute("use yahoo_news ;")
     
     query = """CREATE TABLE IF NOT EXISTS """+ table_name + """ (article_ID int, reply_ID int, reply_writer varchar(100),reply_date varchar(50),reply_body text, R_Like int, R_Bad int);"""
     curs.execute(query)
 
-    query = """ALTER TABLE """ + table_name +""" CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"""
+    query = """ALTER TABLE """ + table_name +""" CHARACTER SET utf8 COLLATE utf8_general_ci;"""
     curs.execute(query)
 
     conn.commit()
@@ -85,19 +85,19 @@ def replies_DB(replies) :
     print("FINISH")
 
 
-# In[113]:
+# In[13]:
 
 
 def rereplies_DB(rereplies) :
     table_name = keyword + "_rereplies"
-    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
     curs = conn.cursor()
     curs.execute("use yahoo_news ;")
     
     query = """CREATE TABLE IF NOT EXISTS """+ table_name + """ (article_ID int,reply_ID int, rereply_ID int, rereply_writer varchar(100),rereply_date varchar(50),rereply_body text, R_Like int, R_Bad int);"""
     curs.execute(query)
 
-    query = """ALTER TABLE """ + table_name +""" CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"""
+    query = """ALTER TABLE """ + table_name +""" CHARACTER SET utf8 COLLATE utf8_general_ci;"""
     curs.execute(query)
 
     conn.commit()
@@ -125,7 +125,7 @@ def rereplies_DB(rereplies) :
     print("FINISH")
 
 
-# In[114]:
+# In[14]:
 
 
 def article_crawling(mode,reply_ID) :
@@ -154,11 +154,15 @@ def article_crawling(mode,reply_ID) :
                     driver.get(url)
 
                     soup = BeautifulSoup(driver.page_source,'html.parser')
-                    news_title = soup.select('header')[0].text.replace('\n','')
+                    
+                    news_title = soup.select('header')[0].text.replace('\n','').encode('cp949','ignore')
+                    news_title = news_title.decode('cp949','ignore')
+                    
                     news_date = soup.find("time", {"itemprop" : "datePublished"}).text
                     # writer가 존재하지 않으면 값을 none으로
                     if soup.find("div", {"itemprop" : "author creator"}) is not None :
-                        news_writer = soup.find("div", {"itemprop" : "author creator"}).text
+                        news_writer = soup.find("div", {"itemprop" : "author creator"}).text.encode('cp949','ignore')
+                        news_writer = news_writer.decode('cp949','ignore')
                     else : 
                         news_writer = "None";
                     # provider가 존재하지 않으면 값을 none으로
@@ -182,7 +186,10 @@ def article_crawling(mode,reply_ID) :
                     else : 
                         reply_count = 0
                         
-                    news_content = soup.find("article", {"itemprop" : "articleBody"}).text.replace('\n','').strip()
+                    news_content = soup.find("article", {"itemprop" : "articleBody"}).text.replace('\n','')
+                    news_content = re.sub('<.+?>', '', news_content, 0).strip().encode('cp949','ignore')
+                    news_content = news_content.decode('cp949','ignore')
+                    
                     articles.append([article_ID,url,news_title,news_date,news_writer,news_provider,reply_count,news_content])
                     if mode != 1 and reply_count != 0 :
                         reply_ID = reply_crawling(driver,article_ID,mode,reply_ID)
@@ -201,17 +208,17 @@ def article_crawling(mode,reply_ID) :
     print("기사 수집 완료")
 
 
-# In[115]:
+# In[15]:
 
 
-#DB 생성시 이용
-# conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8mb4")
+# DB 생성시 이용
+# conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
 # curs = conn.cursor()
-# query = """CREATE DATABASE yahoo_news default CHARACTER SET utf8mb4;"""
+# query = """CREATE DATABASE yahoo_news default CHARACTER SET utf8;"""
 # curs.execute(query)
 
 
-# In[116]:
+# In[16]:
 
 
 def reply_crawling(driver,article_ID,mode,reply_ID) :
@@ -234,15 +241,18 @@ def reply_crawling(driver,article_ID,mode,reply_ID) :
     
     # 위치 벗어나는 오류 발생하므로 스크롤 위로 당겨줌
     driver.execute_script("window.scrollTo(0, -document.body.scrollHeight);")
-    time.sleep(2)
+    time.sleep(10)
     
     soup = BeautifulSoup(driver.page_source,'html.parser')
     replies = []
     reply_list = soup.findAll("li", {"class" : "comment Pend(2px) Mt(5px) P(12px) "})
     for li in reply_list :
-        reply_writer = li.find("div", {"class" : "Fz(13px) Mend(20px)"}).find("button").text
+        reply_writer = li.find("div", {"class" : "Fz(13px) Mend(20px)"}).find("button").text.encode('cp949','ignore')
+        reply_writer = reply_writer.decode('cp949','ignore')
         reply_date = li.find("div", {"class" : "Fz(13px) Mend(20px)"}).find("span").text
-        reply_body = li.find("div", {"class" : "Wow(bw)"}).text
+        reply_body = li.find("div", {"class" : "Wow(bw)"}).text.encode('cp949','ignore')
+        reply_body = reply_body.decode('cp949','ignore')
+        
         # 댓글 좋아요 나빠요
         temp = li.find("div", {"class" : "D(ib) Pos(r)"}).findAll("button")
         reply_Like = temp[0].text
@@ -262,17 +272,15 @@ def reply_crawling(driver,article_ID,mode,reply_ID) :
     return reply_ID
 
 
-# In[117]:
+# In[17]:
 
 
 def rereply_crawling(driver,li,article_ID,reply_ID,li_index) :
-    print(li_index)
     elem = driver.find_elements_by_xpath("//ul[@class='comments-list List(n) Ovs(touch) Pos(r) Mstart(-12px) Pt(5px)']/li["+str(li_index+1)+"]/div[1]/div[4]/div[1]/button")
     elem_num = len(elem)
-    print(elem_num)
+
     if elem_num != 1 :
         # rereply 열기
-        print(elem[1])
         elem[1].click()
         time.sleep(3) # 클릭 후 로딩 되어야 하므로 3초정도 여유
         # rereply 더 많아서 show more해야하면
@@ -297,9 +305,12 @@ def rereply_crawling(driver,li,article_ID,reply_ID,li_index) :
         rereply_list = soup.find("div", {"class" : "reply-box"}).findAll("li", {"class" : "comment Pend(2px) Py(10px) Pstart(10px) "})
    
         for i in rereply_list :
-            rereply_writer = i.find("div", {"class" : "Fz(13px) Mend(20px)"}).find("button").text
+            rereply_writer = i.find("div", {"class" : "Fz(13px) Mend(20px)"}).find("button").text.encode('cp949','ignore')
+            rereply_writer = rereply_writer.decode('cp949','ignore')
             rereply_date = i.find("div", {"class" : "Fz(13px) Mend(20px)"}).find("span").text
-            rereply_body = i.find("div", {"class" : "Wow(bw)"}).text
+            rereply_body = i.find("div", {"class" : "Wow(bw)"}).text.encode('cp949','ignore')
+            rereply_body = rereply_body.decode('cp949','ignore')
+            
              # 댓글 좋아요 나빠요
             temp = i.find("div", {"class" : "D(ib) Pos(r)"}).findAll("button")
             rereply_Like = temp[0].text
@@ -324,7 +335,7 @@ def rereply_crawling(driver,li,article_ID,reply_ID,li_index) :
         print("대댓글 없음")
 
 
-# In[ ]:
+# In[18]:
 
 
 options = webdriver.ChromeOptions()
