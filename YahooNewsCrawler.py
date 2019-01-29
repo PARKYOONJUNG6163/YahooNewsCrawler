@@ -18,7 +18,7 @@ import re
 
 
 def createDB():
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
     curs = conn.cursor()
     query = """CREATE DATABASE """+dbname
     try :
@@ -40,7 +40,7 @@ def createDB():
 
 
 def getIndex() :
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
     curs = conn.cursor()
     curs.execute("""use """+dbname)
     temp = keyword.replace(' ','_')
@@ -61,7 +61,7 @@ def getIndex() :
 def articles_DB(articles) : 
     temp = keyword.replace(' ','_')
     table_name = temp + "_articles"
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
     curs = conn.cursor()
     curs.execute("""use """+dbname)
 
@@ -98,7 +98,7 @@ def articles_DB(articles) :
 def replies_DB(replies) :
     temp = keyword.replace(' ','_')
     table_name = temp + "_replies"
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
     curs = conn.cursor()
     curs.execute("""use """+dbname)
     
@@ -134,7 +134,7 @@ def replies_DB(replies) :
 def rereplies_DB(rereplies) :
     temp = keyword.replace(' ','_')
     table_name = temp + "_rereplies"
-    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
+    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
     curs = conn.cursor()
     curs.execute("""use """+dbname)
     
