@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[10]:
+# In[1]:
 
 
 from selenium import webdriver
@@ -14,14 +14,56 @@ import time
 import re
 
 
-# In[11]:
+# In[2]:
+
+
+def createDB():
+    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
+    curs = conn.cursor()
+    query = """CREATE DATABASE """+dbname
+    try :
+        curs.execute(query)
+        check = True
+    except :
+        print('DB가 이미 존재합니다. DB_NAME : ',dbname)
+        check = False
+        
+    query = """ALTER DATABASE """+ dbname + """ CHARACTER SET utf8 COLLATE utf8_general_ci;"""
+    curs.execute(query)
+    conn.commit()
+    conn.close()
+    
+    return check
+
+
+# In[3]:
+
+
+def getIndex() :
+    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
+    curs = conn.cursor()
+    curs.execute("""use """+dbname)
+    temp = keyword.replace(' ','_')
+    table_name = temp + "_articles"
+    query = """SELECT * from """ + table_name
+    try :
+        index = curs.execute(query)
+    except :
+        index = 0
+    conn.close()
+    
+    return index
+
+
+# In[4]:
 
 
 def articles_DB(articles) : 
-    table_name = keyword + "_articles"
-    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
+    temp = keyword.replace(' ','_')
+    table_name = temp + "_articles"
+    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
     curs = conn.cursor()
-    curs.execute("use yahoo_news ;")
+    curs.execute("""use """+dbname)
 
     query = """CREATE TABLE IF NOT EXISTS """+ table_name + """ (ID int, URL text, Title varchar(200), Date varchar(50), Writer varchar(200), Provider varchar(200), Count int,Text text);"""
     curs.execute(query)
@@ -50,14 +92,15 @@ def articles_DB(articles) :
     print("FINISH")
 
 
-# In[12]:
+# In[5]:
 
 
 def replies_DB(replies) :
-    table_name = keyword + "_replies"
-    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
+    temp = keyword.replace(' ','_')
+    table_name = temp + "_replies"
+    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
     curs = conn.cursor()
-    curs.execute("use yahoo_news ;")
+    curs.execute("""use """+dbname)
     
     query = """CREATE TABLE IF NOT EXISTS """+ table_name + """ (article_ID int, reply_ID int, reply_writer varchar(100),reply_date varchar(50),reply_body text, R_Like int, R_Bad int);"""
     curs.execute(query)
@@ -85,14 +128,15 @@ def replies_DB(replies) :
     print("FINISH")
 
 
-# In[13]:
+# In[6]:
 
 
 def rereplies_DB(rereplies) :
-    table_name = keyword + "_rereplies"
-    conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
+    temp = keyword.replace(' ','_')
+    table_name = temp + "_rereplies"
+    conn = pymysql.connect(host = "147.43.122.131", user = "root", password = "1234", charset = "utf8")
     curs = conn.cursor()
-    curs.execute("use yahoo_news ;")
+    curs.execute("""use """+dbname)
     
     query = """CREATE TABLE IF NOT EXISTS """+ table_name + """ (article_ID int,reply_ID int, rereply_ID int, rereply_writer varchar(100),rereply_date varchar(50),rereply_body text, R_Like int, R_Bad int);"""
     curs.execute(query)
@@ -125,14 +169,13 @@ def rereplies_DB(rereplies) :
     print("FINISH")
 
 
-# In[14]:
+# In[7]:
 
 
-def article_crawling(mode,reply_ID) :
+def article_crawling(mode,article_ID,reply_ID) :
     articles = []
     URL_date_list = []
     page_num = 0
-    article_ID = 0
     # 페이지 만큼 돌면서 링크 수집
     while True : 
         print(page_num)
@@ -157,20 +200,22 @@ def article_crawling(mode,reply_ID) :
                     
                     news_title = soup.select('header')[0].text.replace('\n','').encode('cp949','ignore')
                     news_title = news_title.decode('cp949','ignore')
-                    
+                    print(news_title)
                     news_date = soup.find("time", {"itemprop" : "datePublished"}).text
+                    print(news_date)
                     # writer가 존재하지 않으면 값을 none으로
                     if soup.find("div", {"itemprop" : "author creator"}) is not None :
                         news_writer = soup.find("div", {"itemprop" : "author creator"}).text.encode('cp949','ignore')
                         news_writer = news_writer.decode('cp949','ignore')
                     else : 
                         news_writer = "None";
+                    print(news_writer)
                     # provider가 존재하지 않으면 값을 none으로
                     if soup.find("span", {"class" : "provider-link"}) is not None :
                         news_provider = soup.find("span", {"class" : "provider-link"}).text
                     else : 
                         news_provider = "None";
-
+                    print(news_provider)
                     # 댓글 위치에 따라 다르게
                     if soup.find("div", {"class" : "Trsdu(.2s) Trsp(scale) Scale(1)"}) is not None :
                         if soup.find("div", {"class" : "Trsdu(.2s) Trsp(scale) Scale(1)"}).text == '' :
@@ -185,11 +230,11 @@ def article_crawling(mode,reply_ID) :
                             reply_count = 0
                     else : 
                         reply_count = 0
-                        
+                    print(reply_count)    
                     news_content = soup.find("article", {"itemprop" : "articleBody"}).text.replace('\n','')
                     news_content = re.sub('<.+?>', '', news_content, 0).strip().encode('cp949','ignore')
                     news_content = news_content.decode('cp949','ignore')
-                    
+                    print(news_content)   
                     articles.append([article_ID,url,news_title,news_date,news_writer,news_provider,reply_count,news_content])
                     if mode != 1 and reply_count != 0 :
                         reply_ID = reply_crawling(driver,article_ID,mode,reply_ID)
@@ -208,17 +253,7 @@ def article_crawling(mode,reply_ID) :
     print("기사 수집 완료")
 
 
-# In[15]:
-
-
-# DB 생성시 이용
-# conn = pymysql.connect(host = "", user = "root", password = "", charset = "utf8")
-# curs = conn.cursor()
-# query = """CREATE DATABASE yahoo_news default CHARACTER SET utf8;"""
-# curs.execute(query)
-
-
-# In[16]:
+# In[8]:
 
 
 def reply_crawling(driver,article_ID,mode,reply_ID) :
@@ -272,7 +307,7 @@ def reply_crawling(driver,article_ID,mode,reply_ID) :
     return reply_ID
 
 
-# In[17]:
+# In[9]:
 
 
 def rereply_crawling(driver,li,article_ID,reply_ID,li_index) :
@@ -335,14 +370,28 @@ def rereply_crawling(driver,li,article_ID,reply_ID,li_index) :
         print("대댓글 없음")
 
 
-# In[18]:
+# In[10]:
+
+
+global keyword
+global dbname
+
+
+# In[13]:
 
 
 options = webdriver.ChromeOptions()
-# options.add_argument('headless')
 options.add_argument("--start-maximized")
 reply_ID = 0
 keyword = input("Keyword ? ")
 mode = int(input("1.기사만   2.기사+댓글   3.기사+댓글+대댓글   "))
-article_crawling(mode,reply_ID) # 기사 수집 시작
+
+temp = keyword.replace(' ','_')
+dbname = 'yahoo_news_'+ temp
+
+if createDB() :
+    article_ID = 0
+else :
+    article_ID = getIndex()
+article_crawling(mode,article_ID,reply_ID) # 기사 수집 시작
 
